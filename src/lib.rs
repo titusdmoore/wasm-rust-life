@@ -1,40 +1,41 @@
 mod utils;
 
-use rand::prelude::*;
+extern crate fixedbitset;
+
 use wasm_bindgen::prelude::*;
 
+use fixedbitset::FixedBitSet;
 use rand::Rng;
 use std::convert::TryInto;
 use std::fmt;
 
-#[wasm_bindgen]
-#[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Cell {
-    Dead = 0,
-    Alive = 1,
-}
+// #[wasm_bindgen]
+// #[repr(u8)]
+// #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+// pub enum Cell {
+//     Dead = 0,
+//     Alive = 1,
+// }
 
 #[wasm_bindgen]
 pub struct Universe {
     width: u32,
     height: u32,
-    cells: Vec<Cell>,
+    cells: FixedBitSet,
 }
 
+#[wasm_bindgen]
 impl Universe {
     pub fn new(width: u32, height: u32) -> Self {
         let mut rng = rand::thread_rng();
-        let mut cells = Vec::new();
+        let mut cells = FixedBitSet::with_capacity((width * height) as usize);
 
-        for cell in 0..(width * height) {
+        for index in 0..(width * height) {
             let cell = if rng.gen_range(0..100) < 54 {
-                Cell::Alive
+                cells.set(index as usize, true);
             } else {
-                Cell::Dead
+                cells.set(index as usize, false);
             };
-
-            cells.push(cell);
         }
 
         Universe {
@@ -42,6 +43,18 @@ impl Universe {
             height,
             cells,
         }
+    }
+
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    pub fn cells(&self) -> *const u32 {
+        self.cells.as_slice().as_ptr()
     }
 
     pub fn render(&self) -> String {
@@ -76,7 +89,7 @@ impl Universe {
                 }
 
                 if self.cells[self.get_index(row_iter_index as u32, column_iter_index as u32)]
-                    == Cell::Alive
+                    == true
                 {
                     live_count += 1;
                 }
@@ -96,10 +109,10 @@ impl Universe {
                 let neighbor_live_count = self.get_cell_live_neighbors(row, column);
 
                 let next_cell = match (cell, neighbor_live_count) {
-                    (Cell::Alive, x) if x < 2 => Cell::Dead,
-                    (Cell::Alive, 2) | (Cell::Alive, 3) => Cell::Alive,
-                    (Cell::Alive, x) if x > 3 => Cell::Dead,
-                    (Cell::Dead, 3) => Cell::Alive,
+                    (true, x) if x < 2 => false,
+                    (true, 2) | (true, 3) => false,
+                    (true, x) if x > 3 => false,
+                    (false, 3) => true,
                     (otherwise, _) => otherwise,
                 };
 
@@ -114,8 +127,8 @@ impl Universe {
 impl fmt::Display for Universe {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for line in self.cells.as_slice().chunks(self.width as usize) {
-            for &cell in line {
-                let symbol = if cell == Cell::Dead { '◻' } else { '◼' };
+            for cell in line {
+                let symbol = if *cell == false { '◻' } else { '◼' };
                 write!(f, "{}", symbol)?;
             }
             write!(f, "\n")?;
@@ -134,7 +147,7 @@ mod tests {
         let universe = Universe {
             width: 3,
             height: 3,
-            cells: vec![Cell::Dead; 9],
+            cells: FixedBitSet::with_capacity(9),
         };
 
         assert_eq!(universe.get_index(0, 0), 0);
@@ -145,11 +158,15 @@ mod tests {
 
     #[test]
     fn test_all_cells_alive() {
-        let universe = Universe {
+        let mut universe = Universe {
             width: 3,
             height: 3,
-            cells: vec![Cell::Alive; 9],
+            cells: FixedBitSet::with_capacity(9),
         };
+
+        for index in 0..9 {
+            universe.cells.set(index, true);
+        }
 
         // 1 1 1
         // 1 1 1
@@ -171,7 +188,7 @@ mod tests {
         let universe = Universe {
             width: 3,
             height: 3,
-            cells: vec![Cell::Dead; 9],
+            cells: FixedBitSet::with_capacity(9),
         };
 
         // 0 0 0
@@ -194,11 +211,11 @@ mod tests {
         let mut universe = Universe {
             width: 3,
             height: 3,
-            cells: vec![Cell::Dead; 9],
+            cells: FixedBitSet::with_capacity(9),
         };
 
         let index = universe.get_index(1, 1);
-        universe.cells[index] = Cell::Alive;
+        universe.cells[index] = true;
 
         // 0 0 0
         // 0 1 0
@@ -220,15 +237,15 @@ mod tests {
         let mut universe = Universe {
             width: 3,
             height: 3,
-            cells: vec![Cell::Dead; 9],
+            cells: FixedBitSet::with_capacity(9),
         };
 
         let mut index = universe.get_index(0, 0);
-        universe.cells[index] = Cell::Alive;
+        universe.cells[index] = true;
         index = universe.get_index(1, 1);
-        universe.cells[index] = Cell::Alive;
+        universe.cells[index] = true;
         index = universe.get_index(2, 2);
-        universe.cells[index] = Cell::Alive;
+        universe.cells[index] = true;
 
         // 1 0 0
         // 0 1 0
