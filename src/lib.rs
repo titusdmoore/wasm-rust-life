@@ -9,14 +9,6 @@ use rand::Rng;
 use std::convert::TryInto;
 use std::fmt;
 
-// #[wasm_bindgen]
-// #[repr(u8)]
-// #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-// pub enum Cell {
-//     Dead = 0,
-//     Alive = 1,
-// }
-
 #[wasm_bindgen]
 pub struct Universe {
     width: u32,
@@ -31,11 +23,11 @@ impl Universe {
         let mut cells = FixedBitSet::with_capacity((width * height) as usize);
 
         for index in 0..(width * height) {
-            let cell = if rng.gen_range(0..100) < 54 {
+            if rng.gen_range(0..100) < 54 {
                 cells.set(index as usize, true);
             } else {
                 cells.set(index as usize, false);
-            };
+            }
         }
 
         Universe {
@@ -116,7 +108,7 @@ impl Universe {
                     (otherwise, _) => otherwise,
                 };
 
-                next[index] = next_cell;
+                next.set(index, next_cell);
             }
         }
 
@@ -128,7 +120,7 @@ impl fmt::Display for Universe {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for line in self.cells.as_slice().chunks(self.width as usize) {
             for cell in line {
-                let symbol = if *cell == false { '◻' } else { '◼' };
+                let symbol = if *cell == 0 { '◻' } else { '◼' };
                 write!(f, "{}", symbol)?;
             }
             write!(f, "\n")?;
@@ -215,7 +207,7 @@ mod tests {
         };
 
         let index = universe.get_index(1, 1);
-        universe.cells[index] = true;
+        universe.cells.set(index, true);
 
         // 0 0 0
         // 0 1 0
@@ -241,11 +233,11 @@ mod tests {
         };
 
         let mut index = universe.get_index(0, 0);
-        universe.cells[index] = true;
+        universe.cells.set(index, true);
         index = universe.get_index(1, 1);
-        universe.cells[index] = true;
+        universe.cells.set(index, true);
         index = universe.get_index(2, 2);
-        universe.cells[index] = true;
+        universe.cells.set(index, true);
 
         // 1 0 0
         // 0 1 0

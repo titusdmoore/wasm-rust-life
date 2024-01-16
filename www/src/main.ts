@@ -1,5 +1,5 @@
 import './style.css'
-import { Universe, Cell } from "wasm-rust-life";
+import { Universe } from "wasm-rust-life";
 import { memory } from "wasm-rust-life/wasm_rust_life_bg.wasm";
 
 const CELL_SIZE = 5;
@@ -21,6 +21,8 @@ console.log(universe, width, height, canvas, ctx);
 
 const renderLoop = () => {
   universe.tick();
+
+  console.log("ran")
 
   drawGrid();
   drawCells();
@@ -53,7 +55,7 @@ const getIndex = (row, column) => {
 
 const drawCells = () => {
   const cellsPtr = universe.cells();
-  const cells = new Uint8Array(memory.buffer, cellsPtr, width * height);
+  const cells = new Uint8Array(memory.buffer, cellsPtr, (width * height) / 8);
 
   ctx.beginPath();
 
@@ -61,7 +63,7 @@ const drawCells = () => {
     for (let col = 0; col < width; col++) {
       const idx = getIndex(row, col);
 
-      ctx.fillStyle = cells[idx] === Cell.Dead
+      ctx.fillStyle = bitIsSet(idx, cells)
         ? DEAD_COLOR
         : ALIVE_COLOR;
 
@@ -75,6 +77,12 @@ const drawCells = () => {
   }
 
   ctx.stroke();
+};
+
+const bitIsSet = (n, arr) => {
+  const byte = Math.floor(n / 8);
+  const mask = 1 << (n % 8);
+  return (arr[byte] & mask) === mask;
 };
 
 drawGrid();
