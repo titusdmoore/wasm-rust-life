@@ -54,8 +54,11 @@ const getIndex = (row, column) => {
 };
 
 const drawCells = () => {
+  console.log("draw cells")
   const cellsPtr = universe.cells();
+  console.log(cellsPtr)
   const cells = new Uint8Array(memory.buffer, cellsPtr, (width * height) / 8);
+  console.log(cells)
 
   ctx.beginPath();
 

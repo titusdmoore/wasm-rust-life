@@ -100,15 +100,13 @@ impl Universe {
                 let cell = self.cells[index];
                 let neighbor_live_count = self.get_cell_live_neighbors(row, column);
 
-                let next_cell = match (cell, neighbor_live_count) {
+                next.set(index, match (cell, neighbor_live_count) {
                     (true, x) if x < 2 => false,
-                    (true, 2) | (true, 3) => false,
+                    (true, 2) | (true, 3) => true,
                     (true, x) if x > 3 => false,
                     (false, 3) => true,
-                    (otherwise, _) => otherwise,
-                };
-
-                next.set(index, next_cell);
+                    (otherwise, _) => otherwise
+                });
             }
         }
 
